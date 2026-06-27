@@ -93,16 +93,40 @@ function FieldToggle({ config, value, onChange }) {
 
 function FieldTextarea({ config, value, onChange, nodeRef }) {
   const taRef = useRef(null);
+  const canvasRef = useRef(document.createElement('canvas'));
 
-  // Auto-resize the textarea and the node when content changes
   useEffect(() => {
     if (!taRef.current || !nodeRef?.current) return;
     const ta = taRef.current;
+    const node = nodeRef.current;
+
+    // ── 1. Measure the longest line to determine width ──
+    const ctx = canvasRef.current.getContext('2d');
+    const computedStyle = window.getComputedStyle(ta);
+    ctx.font = `${computedStyle.fontSize} ${computedStyle.fontFamily}`;
+
+    const lines = value.split('\n');
+    const longestLineWidth = Math.max(
+      ...lines.map((line) => ctx.measureText(line).width)
+    );
+
+    const PADDING = 40;   // textarea internal padding + node padding
+    const MIN_WIDTH = 240;
+    const MAX_WIDTH = 480;
+
+    const targetWidth = Math.min(
+      MAX_WIDTH,
+      Math.max(MIN_WIDTH, longestLineWidth + PADDING)
+    );
+
+    // ── 2. Apply width to node, then let height follow ──
+    node.style.width    = `${targetWidth}px`;
+    node.style.minWidth = `${targetWidth}px`;
+
+    // ── 3. Reset height so scrollHeight recalculates correctly ──
     ta.style.height = 'auto';
     ta.style.height = `${ta.scrollHeight}px`;
 
-    // Let the node grow with the textarea naturally (min enforced by CSS)
-    nodeRef.current.style.height = 'auto';
   }, [value, nodeRef]);
 
   return (
@@ -122,7 +146,6 @@ function FieldTextarea({ config, value, onChange, nodeRef }) {
     </div>
   );
 }
-
 function FieldStatic({ config }) {
   return (
     <div className="bf-field">
