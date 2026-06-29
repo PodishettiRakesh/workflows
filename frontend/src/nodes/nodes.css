@@ -240,3 +240,6 @@
 
 /* ─── Note node variant ───────────────────────────────────────────────────────── */
 /* Nodes can opt in to a softer look via their header class — future enhancement */
+.react-flow__handle-right .bf-handle-label--right {
+  right: 16px;
+}
