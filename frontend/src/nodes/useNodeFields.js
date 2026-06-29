@@ -28,7 +28,7 @@ function extractVars(text) {
   return vars;
 }
 
-export function useNodeFields(nodeId, fieldConfigs, data) {
+export function useNodeFields(nodeId, fieldConfigs, data, updateNodeData) {
   // Build initial state from config defaults, falling back to saved data
   const initialState = Object.fromEntries(
     fieldConfigs.map((f) => {
@@ -36,7 +36,7 @@ export function useNodeFields(nodeId, fieldConfigs, data) {
       const defaultVal =
         typeof f.default === 'function'
           ? f.default(nodeId)
-          : f.default ?? '';
+          : f.default || '';
       return [f.key, saved !== undefined ? saved : defaultVal];
     })
   );
@@ -45,19 +45,23 @@ export function useNodeFields(nodeId, fieldConfigs, data) {
 
   const setField = (key, value) => {
     setFields((prev) => ({ ...prev, [key]: value }));
+    
+    // If this is a textarea with extractVars, persist extracted variables to store
+    const fieldConfig = fieldConfigs.find(f => f.key === key);
+    if (fieldConfig?.type === 'textarea' && fieldConfig?.extractVars && updateNodeData) {
+      const vars = extractVars(value || '');
+      console.log('[useNodeFields] Extracted variables:', vars, 'for node:', nodeId);
+      updateNodeData(nodeId, { variables: vars });
+    }
   };
 
-  // Derive dynamic handles from any textarea field with extractVars: true
+  // Derive dynamic handles from store data (node.data.variables) instead of local state
   const varHandles = useMemo(() => {
-    const handles = [];
-    fieldConfigs.forEach((f) => {
-      if (f.type === 'textarea' && f.extractVars) {
-        const vars = extractVars(fields[f.key] || '');
-        vars.forEach((v) => handles.push({ id: `${nodeId}-${v}`, label: v }));
-      }
-    });
-    return handles;
-  }, [nodeId, fieldConfigs, fields]);
+    const storedVars = data?.variables || [];
+    console.log('[useNodeFields] Reading varHandles from store:', storedVars, 'for node:', nodeId);
+    // Use unprefixed IDs - ReactFlow will handle node ID prefixing internally
+    return storedVars.map((v) => ({ id: v, label: v }));
+  }, [data?.variables, nodeId]);
 
   return { fields, setField, varHandles };
 }

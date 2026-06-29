@@ -51,4 +51,16 @@ export const useStore = create((set, get) => ({
         }),
       });
     },
+    updateNodeData: (nodeId, newData) => {
+  console.log('[store] updateNodeData called for node:', nodeId, 'with data:', newData);
+  console.log('[store] Current store state before update:', get().nodes.find(n => n.id === nodeId));
+  set({
+    nodes: get().nodes.map((node) =>
+      node.id === nodeId
+        ? { ...node, data: { ...node.data, ...newData } }
+        : node
+    ),
+  });
+  console.log('[store] Store state after update:', get().nodes.find(n => n.id === nodeId));
+},
   }));

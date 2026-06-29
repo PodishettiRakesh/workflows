@@ -19,8 +19,9 @@
 // Field types:  text | select | textarea | number | toggle
 
 import { useRef, useEffect } from 'react';
-import { Handle, Position } from 'reactflow';
+import { Handle, Position, useUpdateNodeInternals } from 'reactflow';
 import { useNodeFields } from './useNodeFields';
+import { useStore } from '../store';
 
 // ─── Field renderers ──────────────────────────────────────────────────────────
 
@@ -170,19 +171,28 @@ function distributePositions(handles) {
 
 export function BaseNode({ id, data, config }) {
   const nodeRef = useRef(null);
+  const updateNodeInternals = useUpdateNodeInternals();
+  const updateNodeData = useStore((state) => state.updateNodeData);
   const { fields, setField, varHandles } = useNodeFields(
     id,
     config.fields || [],
-    data
+    data,
+    updateNodeData
   );
+
+  // Call updateNodeInternals when variables change to inform ReactFlow about dynamic handles
+  useEffect(() => {
+    updateNodeInternals(id);
+  }, [data?.variables, updateNodeInternals]);
 
   const inputHandles  = config.handles?.inputs  || [];
   const outputHandles = config.handles?.outputs || [];
 
   // Merge explicit input handles with dynamic {{var}} handles from textarea
   const allInputHandles = [...inputHandles, ...varHandles];
+  console.log('[BaseNode] Rendering handles for node:', id, 'allInputHandles:', allInputHandles);
   const inputPositions  = distributePositions(allInputHandles);
-  const outputPositions = distributePositions(outputHandles);
+  const outputPositions  = distributePositions(outputHandles);
 
   const minWidth = config.width || 220;
 
